@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Para Jhoan - Con todo mi Amor</title>
+    
+    <!-- Importación de Fuentes Románticas de Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@1,400;1,600&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000000;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            user-select: none;
+            font-family: sans-serif;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* CONTENEDOR DEL MENSAJE ROMÁNTICO */
+        #contenedor-texto {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            width: 90%;
+            max-width: 800px;
+            z-index: 10;
+            pointer-events: none; /* No interfiere con el canvas */
+            
+            /* Animación suave de aparición y desaparición */
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 1.8s ease-in-out, transform 1.8s ease-in-out;
+        }
+
+        /* Se activa desde JavaScript cuando el corazón explota */
+        #contenedor-texto.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Caligrafía cursiva romántica */
+        .titulo-romantico {
+            font-family: 'Great Vibes', cursive;
+            font-size: 5rem;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            line-height: 1.1;
+            text-shadow: 0 0 10px #ff007f, 0 0 20px #ff007f, 0 0 40px #ff0055;
+        }
+
+        /* Letra serif clásica, poética y elegante */
+        .subtitulo-romantico {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-weight: 400;
+            font-size: 2rem;
+            color: #ffe5ec;
+            margin: 20px 0 5px 0;
+            letter-spacing: 1px;
+            text-shadow: 0 0 8px rgba(255, 85, 204, 0.6);
+        }
+
+        .destacado {
+            font-size: 2.4rem;
+            font-weight: 600;
+            color: #ffb3c6;
+            margin-top: 5px;
+            text-shadow: 0 0 12px rgba(255, 0, 127, 0.9), 0 0 25px rgba(255, 0, 127, 0.5);
+        }
+
+        /* Adaptabilidad para pantallas de teléfonos móviles */
+        @media (max-width: 600px) {
+            .titulo-romantico {
+                font-size: 3.2rem;
+            }
+            .subtitulo-romantico {
+                font-size: 1.4rem;
+                margin-top: 15px;
+            }
+            .destacado {
+                font-size: 1.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="canvasCorazon"></canvas>
+
+    <!-- Capa de texto HTML de Alta Calidad -->
+    <div id="contenedor-texto">
+        <h1 class="titulo-romantico">Feliz cumpleaños Jhoan</h1>
+        <p class="subtitulo-romantico">este mundo es tuyo</p>
+        <p class="subtitulo-romantico destacado">igual que yo</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvasCorazon');
+        const ctx = canvas.getContext('2d');
+        const contenedorTexto = document.getElementById('contenedor-texto');
+
+        function ajustarPantalla() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        ajustarPantalla();
+        window.addEventListener('resize', ajustarPantalla);
+
+        // CONFIGURACIÓN DE TIEMPOS (en frames a 60fps)
+        const NUM_PARTICULAS = 2000;    
+        const DURACION_REMOLINO = 110;  // Entrada del corazón (1.8s)
+        const DURACION_VIDA = 150;      // Latido (2.5s)
+        const DURACION_EXPLOSION = 80;  // Explosión del corazón (1.3s)
+        const DURACION_TEXTO = 540;     // Duración de la frase en pantalla (9 segundos en total)
+
+        let estadoActual = 'assemble';  // Estados: 'assemble', 'pulse', 'explode', 'show_text'
+        let frameEstado = 0;
+
+        class Particula {
+            constructor() {
+                this.inicializar();
+            }
+
+            inicializar() {
+                const t = Math.random() * Math.PI;
+                const theta = Math.random() * Math.PI * 2;
+                const r = Math.pow(Math.random(), 0.6); 
+
+                const escala3D = 11.5;
+                const sinT = Math.sin(t);
+                
+                this.tx = 16 * Math.pow(sinT, 3) * Math.cos(theta) * escala3D;
+                this.ty = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) * escala3D - 20;
+                this.tz = 16 * Math.pow(sinT, 3) * Math.sin(theta) * escala3D;
+
+                const anguloEspiral = Math.random() * Math.PI * 2;
+                const radioEspiral = 280 + Math.random() * 220; 
+                this.ox = Math.cos(anguloEspiral) * radioEspiral;
+                this.oy = (Math.random() - 0.5) * 350; 
+                this.oz = Math.sin(anguloEspiral) * radioEspiral;
+
+                this.x = this.ox;
+                this.y = this.oy;
+                this.z = this.oz;
+
+                this.vx = 0;
+                this.vy = 0;
+                this.vz = 0;
+
+                const colores = ['#ffffff', '#ff0055', '#ff00a0', '#ff55cc', '#ff007f'];
+                this.color = colores[Math.floor(Math.random() * colores.length)];
+                this.size = Math.random() * 2.5 + 1.2; 
+                this.alpha = 0;
+
+                this.velocidadEspiral = 0.022 + Math.random() * 0.018;
+                this.progreso = 0;
+            }
+
+            update(estado, tick, factorLatido) {
+                // El corazón sigue girando lentamente
+                const velocidadGiro = 0.022;
+                const cosY = Math.cos(velocidadGiro);
+                const sinY = Math.sin(velocidadGiro);
+                
+                const rx = this.tx * cosY - this.tz * sinY;
+                const rz = this.tx * sinY + this.tz * cosY;
+                this.tx = rx;
+                this.tz = rz;
+
+                if (estado === 'assemble') {
+                    this.progreso += this.velocidadEspiral;
+                    if (this.progreso > 1) this.progreso = 1;
+
+                    const ease = 1 - Math.pow(1 - this.progreso, 3);
+                    const anguloRemolino = (1 - ease) * Math.PI * 3.5; 
+                    const cosR = Math.cos(anguloRemolino);
+                    const sinR = Math.sin(anguloRemolino);
+
+                    const lx = this.ox + (this.tx - this.ox) * ease;
+                    const ly = this.oy + (this.ty - this.oy) * ease;
+                    const lz = this.oz + (this.tz - this.oz) * ease;
+
+                    this.x = lx * cosR - lz * sinR;
+                    this.y = ly;
+                    this.z = lx * sinR + lz * cosR;
+
+                    this.alpha = Math.min(1, tick / 15);
+
+                } else if (estado === 'pulse') {
+                    const oscilacion = Math.sin(tick * 0.07 + this.ty * 0.04) * 3.5;
+                    const wx = this.tx + Math.cos(tick * 0.05 + this.ty) * oscilacion;
+                    const wz = this.tz + Math.sin(tick * 0.05 + this.ty) * oscilacion;
+
+                    this.x = wx * factorLatido;
+                    this.y = this.ty * factorLatido;
+                    this.z = wz * factorLatido;
+                    this.alpha = 1;
+
+                } else if (estado === 'explode' || estado === 'show_text') {
+                    // Si apenas entramos a la explosión, calculamos velocidades físicas
+                    if (estado === 'explode' && tick === 1) {
+                        const fuerzaExplosion = Math.random() * 11 + 7;
+                        const distancia = Math.sqrt(this.x*this.x + this.y*this.y + this.z*this.z) || 1;
+                        
+                        this.vx = (this.x / distancia) * fuerzaExplosion + (Math.random() - 0.5) * 4;
+                        this.vy = (this.y / distancia) * fuerzaExplosion - (Math.random() * 5); 
+                        this.vz = (this.z / distancia) * fuerzaExplosion + (Math.random() - 0.5) * 4;
+                    }
+
+                    // Las partículas se desplazan de forma realista cayendo lentamente
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    this.z += this.vz;
+
+                    this.vy += 0.12;  // Gravedad suave para una caída romántica tipo "polvo estelar"
+                    this.vx *= 0.96;  
+                    this.vz *= 0.96;
+
+                    // Se desvanecen muy despacio para dejar un fondo estrellado mientras el texto aparece
+                    this.alpha -= 0.006; 
+                    if (this.alpha < 0) this.alpha = 0;
+                }
+            }
+
+            draw(centerX, centerY) {
+                if (this.alpha <= 0) return;
+
+                const fov = 400; 
+                if (this.z <= -fov + 10) return; 
+
+                const escalaPerspectiva = fov / (fov + this.z);
+                if (escalaPerspectiva <= 0 || isNaN(escalaPerspectiva)) return;
+
+                const radioFinal = this.size * escalaPerspectiva;
+                if (radioFinal <= 0 || isNaN(radioFinal)) return; 
+
+                const projX = centerX + this.x * escalaPerspectiva;
+                const projY = centerY + this.y * escalaPerspectiva;
+
+                if (isNaN(projX) || isNaN(projY)) return;
+
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.alpha;
+
+                ctx.beginPath();
+                ctx.arc(projX, projY, radioFinal, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        const listaParticulas = [];
+        for (let i = 0; i < NUM_PARTICULAS; i++) {
+            listaParticulas.push(new Particula());
+        }
+
+        function renderizar() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            frameEstado++;
+
+            // MÁQUINA DE ESTADOS RE-DISEÑADA
+            if (estadoActual === 'assemble' && frameEstado >= DURACION_REMOLINO) {
+                estadoActual = 'pulse';
+                frameEstado = 0;
+            } else if (estadoActual === 'pulse' && frameEstado >= DURACION_VIDA) {
+                estadoActual = 'explode';
+                frameEstado = 0;
+            } else if (estadoActual === 'explode' && frameEstado >= DURACION_EXPLOSION) {
+                // Al terminar la explosión de partículas, mostramos el texto romántico
+                estadoActual = 'show_text';
+                frameEstado = 0;
+                contenedorTexto.classList.add('visible'); // El texto aparece con transición CSS
+            } else if (estadoActual === 'show_text') {
+                // Iniciamos la desaparición sutil del texto 1.5 segundos (90 cuadros) antes del reinicio
+                if (frameEstado >= DURACION_TEXTO - 90) {
+                    contenedorTexto.classList.remove('visible');
+                }
+                if (frameEstado >= DURACION_TEXTO) {
+                    // Volvemos a armar el corazón de forma instantánea y fluida
+                    listaParticulas.forEach(p => p.inicializar());
+                    estadoActual = 'assemble';
+                    frameEstado = 0;
+                }
+            }
+
+            // GESTIÓN DEL LATIDO CARDÍACO
+            let factorLatido = 1;
+            if (estadoActual === 'pulse') {
+                if (frameEstado > DURACION_VIDA - 25) {
+                    const tCompresion = (frameEstado - (DURACION_VIDA - 25)) / 25;
+                    factorLatido = 1 - tCompresion * 0.35; 
+                } else {
+                    const ritmo = frameEstado % 70;
+                    if (ritmo < 10) {
+                        factorLatido = 1 + 0.15 * Math.sin((ritmo / 10) * Math.PI);
+                    } else if (ritmo >= 14 && ritmo < 24) {
+                        factorLatido = 1 + 0.07 * Math.sin(((ritmo - 14) / 10) * Math.PI);
+                    }
+                }
+            }
+
+            // Resplandor ambiental de fondo neón
+            if (['pulse', 'assemble'].includes(estadoActual)) {
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                const glowGradiant = ctx.createRadialGradient(centerX, centerY - 20, 5, centerX, centerY - 20, 260);
+                glowGradiant.addColorStop(0, 'rgba(255, 0, 120, 0.09)');
+                glowGradiant.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                ctx.fillStyle = glowGradiant;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY - 20, 260, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // Actualizar la física de las partículas
+            listaParticulas.forEach(p => p.update(estadoActual, frameEstado, factorLatido));
+
+            // Ordenamiento en profundidad (Z-Sorting) para efecto 3D realista
+            listaParticulas.sort((a, b) => b.z - a.z);
+
+            // Renderizado de las partículas
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            listaParticulas.forEach(p => p.draw(centerX, centerY));
+            ctx.restore();
+
+            requestAnimationFrame(renderizar);
+        }
+
+        renderizar();
+    </script>
+</body>
+</html>
