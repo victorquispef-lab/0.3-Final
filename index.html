@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recorrido Interactivo - Museo de Minerales</title>
+    
+    <!-- Importar A-Frame para renderizado 3D y VR -->
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <!-- Importar A-Frame Extras para utilidades de control y carga -->
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #050811;
+        }
+
+        /* Pantalla de Inicio / Bienvenida (Requerida por políticas de audio de navegadores) */
+        #welcome-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #050811 0%, #111a2e 100%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #ffffff;
+            text-align: center;
+            transition: opacity 1s ease;
+        }
+
+        #welcome-screen h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+            color: #e2e8f0;
+            text-shadow: 0 0 10px rgba(0, 150, 255, 0.5);
+        }
+
+        #welcome-screen p {
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+            color: #94a3b8;
+            max-width: 500px;
+            line-height: 1.6;
+            padding: 0 20px;
+        }
+
+        .btn-start {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #ffffff;
+            background: linear-gradient(90deg, #ff3b3f 0%, #ff5252 100%);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 59, 63, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .btn-start:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(255, 59, 63, 0.6);
+        }
+
+        /* Panel de Controles en Pantalla */
+        #ui-container {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            color: #ffffff;
+            background: rgba(15, 23, 42, 0.75);
+            padding: 15px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            font-size: 0.9rem;
+            pointer-events: none;
+            max-width: 300px;
+        }
+
+        #ui-container h3 {
+            margin: 0 0 8px 0;
+            color: #ff3b3f;
+            font-size: 1rem;
+        }
+
+        #ui-container ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+
+        /* Contenedor Iframe para Corazon.html */
+        #corazon-frame-container {
+            position: fixed;
+            top: 5%;
+            left: 5%;
+            width: 90vw;
+            height: 90vh;
+            z-index: 9998;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 3px solid #ff69b4;
+            box-shadow: 0 0 30px rgba(255, 105, 180, 0.8);
+            background: rgba(0, 0, 0, 0.85);
+            display: none; /* Inicialmente oculto */
+            opacity: 0;
+            transition: opacity 1.5s ease;
+        }
+
+        #corazon-frame-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+            z-index: 10000;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 59, 63, 0.8);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Pantalla de Inicio -->
+    <div id="welcome-screen">
+        <h1>RECORRIDO INTERACTIVO</h1>
+        <p>Bienvenido al Museo de Minerales. Usa tu teclado (W, A, S, D o flechas) para moverte y el ratón para mirar a tu alrededor.<br>Haz clic en el botón para comenzar el recorrido con audio.</p>
+        <button class="btn-start" onclick="startExperience()">INGRESAR AL MUSEO</button>
+    </div>
+
+    <!-- Controles de Ayuda -->
+    <div id="ui-container">
+        <h3>Controles de Recorrido</h3>
+        <ul>
+            <li><strong>Moverse:</strong> Teclas W, A, S, D o Flechas</li>
+            <li><strong>Mirar:</strong> Mover el ratón (arrastrar o modo puntero lock)</li>
+            <li><strong>Interactuar:</strong> Haz clic en el Corazón Rojo cuando estés cerca</li>
+        </ul>
+    </div>
+
+    <!-- Contenedor del Iframe para la vista del Cielo con Corazon.html -->
+    <div id="corazon-frame-container">
+        <button class="close-btn" onclick="closeCorazonOverlay()">×</button>
+        <iframe src="Corazon.html" id="corazon-iframe"></iframe>
+    </div>
+
+    <!-- Escena 3D de A-Frame -->
+    <a-scene shadow="type: pcfsoft" renderer="colorManagement: true; antialias: true;">
+        
+        <!-- Gestor de Activos (Pre-carga de modelos, audios y texturas) -->
+        <a-assets>
+            <!-- Música de Fondo "Love.mp3" -->
+            <audio id="love-music" src="Love.mp3" preload="auto" loop="true"></audio>
+            
+            <!-- Modelo del Ambiente Principal -->
+            <a-asset-item id="ambient-model" src="untitled.glb"></a-asset-item>
+            
+            <!-- Textura para el Botón de Corazón Rojo (SVG en base64 para evitar dependencias de archivos externos) -->
+            <img id="heart-icon" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ff3b3f'><path d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/></svg>">
+            <img id="pink-heart-icon" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ff69b4'><path d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/></svg>">
+
+            <!-- Activos de los Minerales en carpetas con OBJ/MTL (1, 4, 5, 6) -->
+            <a-asset-item id="aragonite-obj" src="1. Aragonite/aragonite.obj"></a-asset-item>
+            <a-asset-item id="aragonite-mtl" src="1. Aragonite/aragonite.mtl"></a-asset-item>
+
+            <a-asset-item id="halite-obj" src="4. Halite/Halite.obj"></a-asset-item>
+            <a-asset-item id="halite-mtl" src="4. Halite/Halite.mtl"></a-asset-item>
+
+            <a-asset-item id="fluorite-obj" src="5. Fluorite/Fluorite.obj"></a-asset-item>
+            <a-asset-item id="fluorite-mtl" src="5. Fluorite/Fluorite.mtl"></a-asset-item>
+
+            <a-asset-item id="galena-obj" src="6. Galena/Galena.obj"></a-asset-item>
+            <a-asset-item id="galena-mtl" src="6. Galena/Galena.mtl"></a-asset-item>
+
+            <!-- Activos de los Minerales en GLB (2, 3, 7-18) -->
+            <a-asset-item id="malachite-glb" src="2. malachite_mineral.glb"></a-asset-item>
+            <a-asset-item id="aurichalcite-glb" src="3. mineral aurichalcite.glb"></a-asset-item>
+            <a-asset-item id="stibine-glb" src="7. stibine.glb"></a-asset-item>
+            <a-asset-item id="marcassite-glb" src="8. marcassite.glb"></a-asset-item>
+            <a-asset-item id="crocoite-glb" src="9. crocoite.glb"></a-asset-item>
+            <a-asset-item id="olivine-glb" src="10. olivine.glb"></a-asset-item>
+            <a-asset-item id="lepidolite-glb" src="11. lepidolite.glb"></a-asset-item>
+            <a-asset-item id="orthoclase-glb" src="12. orthoclase.glb"></a-asset-item>
+            <a-asset-item id="staurolite-glb" src="13. staurolite.glb"></a-asset-item>
+            <a-asset-item id="apatite-glb" src="14. apatite.glb"></a-asset-item>
+            <a-asset-item id="torbernite-glb" src="15. torbernite.glb"></a-asset-item>
+            <a-asset-item id="sulfur-glb" src="16. sulfur.glb"></a-asset-item>
+            <a-asset-item id="agate-glb" src="17. agate.glb"></a-asset-item>
+            <a-asset-item id="prirodoslovni-glb" src="18. prirodoslovni.glb"></a-asset-item>
+        </a-assets>
+
+        <!-- ================= ILUMINACIÓN DEL AMBIENTE ================= -->
+        <!-- Cielo de Noche Oscuro -->
+        <a-sky color="#04060f"></a-sky>
+
+        <!-- Luz ambiental suave (como tarde/atardecer, no tan oscuro ni tan claro) -->
+        <a-light type="ambient" color="#3a4b60" intensity="0.55"></a-light>
+        
+        <!-- Luz del cielo (Hemisphere Light) que baña el suelo de un tono azulado suave -->
+        <a-light type="hemisphere" color="#4f6a96" groundColor="#0c111c" intensity="0.45"></a-light>
+
+        <!-- Luz direccional muy sutil para simular la luna/atardecer -->
+        <a-light type="directional" color="#85a3e0" intensity="0.3" position="-5 10 -5" castShadow="true"></a-light>
+
+
+        <!-- ================= ESCENARIO PRINCIPAL (untitled.glb) ================= -->
+        <a-entity gltf-model="#ambient-model" position="0 0 0" scale="1 1 1" shadow="receive: true"></a-entity>
+
+
+        <!-- ================= JUGADOR / CÁMARA (PERSPECTIVA 1.5M) ================= -->
+        <!-- Nota de Mapeo de Coordenadas: CAD X -> 3D X, CAD Y -> 3D Z, Altura -> 3D Y -->
+        <!-- El Rig inicia en la coordenada CAD X=40.3 y CAD Y=-1.66. Altura base=0. -->
+        <a-entity id="player-rig" position="40.3 0 -1.66">
+            <!-- Rotador para controlar la mirada fija mediante script sin colisionar con look-controls -->
+            <a-entity id="camera-rotator" position="0 0 0">
+                <!-- La cámara tiene una altura de 1.5m de forma que la perspectiva sea idéntica a los ojos del usuario -->
+                <a-camera id="main-camera" position="0 1.5 0" look-controls="pointerLockEnabled: true" wasd-controls="acceleration: 45">
+                    <!-- Cursor en pantalla para hacer click en el botón corazón en PC y VR -->
+                    <a-cursor id="cursor" 
+                              position="0 0 -1" 
+                              geometry="primitive: ring; radiusOuter: 0.015; radiusInner: 0.008" 
+                              material="color: #ff3b3f; shader: flat" 
+                              raycaster="objects: .clickable"
+                              animation__click="property: scale; startEvents: click; easing: easeInCubic; dur: 150; from: 0.1 0.1 0.1; to: 1 1 1"
+                              animation__fusing="property: scale; startEvents: fusing; easing: easeInCubic; dur: 1500; from: 1 1 1; to: 0.1 0.1 0.1">
+                    </a-cursor>
+                </a-camera>
+            </a-entity>
+        </a-entity>
+
+
+        <!-- ================= BOTÓN INTERACTIVO CORAZÓN ROJO ================= -->
+        <!-- CAD X=0, CAD Y=6, Altura=1.2 (fácil acceso visual al frente del jugador) -->
+        <a-entity id="heart-button-wrapper" position="0 0 6">
+            <!-- Pedestal elegante para el botón -->
+            <a-cylinder radius="0.25" height="0.8" color="#1e293b" material="roughness: 0.2; metalness: 0.8" shadow="cast: true"></a-cylinder>
+            <!-- El corazón flotante e interactivo -->
+            <a-image class="clickable" 
+                     id="heart-button" 
+                     src="#heart-icon" 
+                     position="0 0.95 0" 
+                     scale="0.6 0.6 0.6"
+                     material="transparent: true; shader: flat; side: double"
+                     look-at="#main-camera"
+                     animation__float="property: position; to: 0 1.05 0; dur: 1500; dir: alternate; loop: true; easing: easeInOutSine"
+                     animation__pulse="property: scale; to: 0.7 0.7 0.7; dur: 750; dir: alternate; loop: true; easing: easeInOutQuad"
+                     heart-click-behavior>
+            </a-image>
+            <!-- Luz tenue que emana del botón corazón rojo -->
+            <a-light type="point" color="#ff3b3f" intensity="0.8" distance="4" position="0 1 0"></a-light>
+        </a-entity>
+
+
+        <!-- ================= CORAZÓN ROSADO EN EL CIELO (OCULTO AL INICIO) ================= -->
+        <!-- Se colocará alto en el cielo, cerca del cenit de la zona del botón -->
+        <a-entity id="pink-heart-sky" position="0 25 6" visible="false">
+            <a-image src="#pink-heart-icon" 
+                     scale="15 15 15" 
+                     rotation="90 0 0" 
+                     material="transparent: true; shader: flat; side: double; opacity: 0.9">
+            </a-image>
+            <!-- Fuerte luz rosada que baña el cielo y la parte superior del museo cuando aparece -->
+            <a-light type="point" color="#ff69b4" intensity="2.5" distance="40" position="0 -1 0"></a-light>
+        </a-entity>
+
+
+        <!-- ================= MINERALES EN EL MUSEO ================= -->
+        <!-- Nota: Todos se colocan sobre pedestales de exhibición para simular una galería profesional, 
+             con altura del mineral a exactamente 0.9m del suelo (pedestal de 0.8m + mineral flotando sutilmente a 0.9m). 
+             Su escala base se define en "1 1 1" tal como se solicitó para su posterior modificación. -->
+        
+        <!-- 1. Aragonite (OBJ/MTL) | CAD X=29.5, Y=6.5 -->
+        <a-entity position="29.5 0 6.5">
+            <a-cylinder radius="0.35" height="0.8" color="#111827" material="roughness: 0.4" shadow="cast: true; receive: true"></a-cylinder>
+            <a-entity id="mineral-1" obj-model="obj: #aragonite-obj; mtl: #aragonite-mtl" position="0 0.9 0" scale="1 1 1" shadow="cast: true"></a-entity>
+            <a-light type="spot" color="#fff" intensity="0.5" distance="3" angle="45" position="0 2 0" target="#mineral-1"></a-light>
+        </a-entity>
+
+        <!-- 2. Malachite Mineral (GLB) | CAD X=34.6, Y=6.5 -->
+        <a-entity position="34.6 0 6.5">
+            <a-cylinder radius="0.35" height="0.8" color="#111827" material="roughness: 0.4" shadow="cast: true; receive: true"></a-cylinder>
+            <a-entity id="mineral-2" gltf-model="#malachite-glb" position="0 0.9 0" scale="1 1 1" shadow="cast: true"></a-entity>
+            <a-light type="spot" color="#fff" intensity="0.5" distance="3" angle="45" position="0 2 0" target="#mineral-2"></a-light>
+        </a-entity>
+
+        <!-- 3. Mineral Aurichalcite (GLB) | CAD X=25.3, Y=0.6 -->
+        <a-entity position="25.3 0 0.6">
+            <a-cylinder radius="0.35" height="0.8" color="#111827" material="roughness: 0.4" shadow="cast: true; receive: true"></a-cylinder>
+            <a-entity id="mineral-3" gltf-model="#aurichalcite-glb" position="0 0.9 0" scale="1 1 1" shadow="cast: true"></a-entity>
+            <a-light type="spot" color="#fff" intensity="0.5" distance="3" angle="45" position="0 2 0" target="#mineral-3"></a-light>
+        </a-entity>
+
+        <!-- 4. Halite (OBJ/MTL) | CAD X=18.4, Y=6.6 -->
+        <a-entity position="18.4 0 6.6">
+            <a-cylinder radius="0.35" height="0.8" color="#111827" material="roughness: 0.4" shadow="cast: true; receive: true"></a-cylinder>
+            <a-entity id="mineral-4" obj-model="obj: #halite-obj; mtl: #halite-mtl" position="0 0.9 0" scale="1 1 1" shadow="cast: true"></a-entity>
+            <a-light type="spot" color="#fff" intensity="0.5" distance="3" angle="45" position="0 2 0" target="#mineral-4"></a-light>
+        </a-entity>
+
+        <!-- 5. Fluorite (OBJ/MTL) | CAD X=12, Y=6.6 -->
+        <a-entity position="12 0 6.6">
+            <a-cylinder radius="0.35" height="0.8" color="#111827" material="roughness: 0.4" shadow="cast: true; receive: true"></a-cylinder>
+            <a-entity id="mineral-5" obj-model="obj: #fluorite-obj; mtl: #fluorite-mtl" position="0 0.9 0" scale="1 1 1" shadow="cast: true"></a-entity>
+            <a-light type="spot" color="#fff" intensity="0.5" distance="3" angle="45" position="0 2 0" target="#mineral-5"></a-light>
+        </a-entity>
+
+        <!-- 6. Galena (OBJ/MTL) | CAD X=16.7, Y=-1.44 -->
+        <a-entity position="16.7 0 -1.44">
+            <a-cylinder radius="0.35" height="0.8" color="#111827" material="roughness: 0.4" shadow="cast: true; receive: true"></a-cylinder>
+            <a-entity id="mineral-6" obj-model="obj: #galena-obj; mtl: #galena-mtl" position="0 0.9 0" scale="1 1 1" shadow="cast: true"></a-entity>
+            <a-light type="spot" color="#fff" intensity="0.5" distance="3" angle="45" position="0 2 0" target="#mineral-6"></a-light>
+        </a-entity>
+
+        <!-- 7. Stibine (GLB) | CAD X=14.9, Y=-9.67 -->
+        <a-entity position="14.9 0 -9.67">
+            <a-cylinder radius="0.35" height="0.8" color="#111827" material="roughness: 0.4" shadow="cast: true; receive: true"></a-cylinder>
+            <a-entity id="mineral-7" gltf-model="#stibine-glb" position="0 0.9 0" scale="1 1 1" shadow="cast: true"></a-entity>
+            <a-light type="spot" color="#fff" intensity="0.5" distance="3" angle="45" position="0 2 0" target="#mineral-7"></a-light>
+        </a-entity>
+
+        <!-- 8. Marcassite (GLB) | CAD X=20.6, Y=-9.67 -->
+        <a-entity position="20.6 0 -9.67">
+            <a-cylinder radius="0.35" height="0.8" color="#111827" material="roughness: 0.4" shadow="cast: true; receive: true"></a-cylinder>
+            <a-entity id="mineral-8" gltf-model="#marcassite-glb" position="0 0.9 0" scale="1 1 1" shadow="cast: true"></a-entity>
+            <a-light type="spot" color="#fff" intensity="0.5" distance="3" angle="45" position="0 2 0" target="#mineral-8"></a-light>
+        </a-entity>
+
+        <!-- 9. Crocoite (GLB) | CAD X=26.5, Y=6.5 -->
+        <a-entity position="26.5 0 6.5">
+            <a-cylinder radius="0.35" height="0.8" color="#111827" material="roughness: 0.4" shadow="cast: true; receive: true"></a-cylinder>
+            <a-entity id="mineral-9" gltf-model="#crocoite-glb" position="0 0.9 0" scale="1 1 1" shadow="cast: true"></a-entity>
+            <a-light type="spot" color="#fff" intensity="0.5" distance="3" angle="45" position="0 2 0" target="#mineral-9"></a-light>
+        </a-entity>
+
+        <!-- 10. Olivine (GLB) | CAD X=32.5, Y=-5.72 -->
+        <a-entity position="32.5 0 -5.72">
+            <a-cylinder radius="0.35" height="0.8" color="#111827" material="roughness: 0.4" shadow="cast: true; receive: true"></a-cylinder>
+            <a-entity id="mineral-10" gltf-model="#olivine-glb" position="0 0.9 0" scale="1 1 1" shadow="cast: true"></a-entity>
+            <a-light type="spot" color="#fff" intensity="0.5" distance="3" angle="45" position="0 2 0" target="#mineral-10"></a-light>
+        </a-entity>
+
+        <!-- 11. Lepidolite (GLB) | CAD X=35.5, Y=-13.1 -->
+        <a-entity position="35.5 0 -13.1">
+            <a-cylinder radius="0.35" height="0.8" color="#111827" material="roughness: 0.4" shadow="cast: true; receive: true"></a-cylinder>
+            <a-entity id="mineral-11" gltf-model="#lepidolite-glb" position="0 0.9 0" scale="1 1 1" shadow="cast: true"></a-entity>
+            <a-light type="spot" color="#fff" intensity="0.5" distance="3" angle="45" position="0 2 0" target="#mineral-11"></a-light>
+        </a-entity>
+
+        <!-- 12. Orthoclase (GLB) | CAD X=41.8, Y=-13.9 -->
+        <a-entity position="41.8 0 -13.9">
+            <a-cylinder radius="0.35" height="0.8" color="#111827" material="roughness: 0.4" shadow="cast: true; receive: true"></a-cylinder>
+            <a-entity id="mineral-12" gltf-model="#orthoclase-glb" position="0 0.9 0" scale="1 1 1" shadow="cast: true"></a-entity>
+            <a-light type="spot" color="#fff" intensity="0.5" distance="3" angle="45" position="0 2 0" target="#mineral-12"></a-light>
+        </a-entity>
+
+        <!-- 13. Staurolite (GLB) | CAD X=47, Y=-13.9 -->
+        <a-entity position="47 0 -13.9">
+            <a-cylinder radius="0.35" height="0.8" color="#111827" material="roughness: 0.4" shadow="cast: true; receive: true"></a-cylinder>
+            <a-entity id="mineral-13" gltf-model="#staurolite-glb" position="0 0.9 0" scale="1 1 1" shadow="cast: true"></a-entity>
+            <a-light type="spot" color="#fff" intensity="0.5" distance="3" angle="45" position="0 2 0" target="#mineral-13"></a-light>
+        </a-entity>
+
+        <!-- 14. Apatite (GLB) | CAD X=47.6, Y=-9.4 -->
+        <a-entity position="47.6 0 -9.4">
+            <a-cylinder radius="0.35" height="0.8" color="#111827" material="roughness: 0.4" shadow="cast: true; receive: true"></a-cylinder>
+            <a-entity id="mineral-14" gltf-model="#apatite-glb" position="0 0.9 0" scale="1 1 1" shadow="cast: true"></a-entity>
+            <a-light type="spot" color="#fff" intensity="0.5" distance="3" angle="45" position="0 2 0" target="#mineral-14"></a-light>
+        </a-entity>
+
+        <!-- 15. Torbernite (GLB) | CAD X=-4.8, Y=5.45 -->
+        <a-entity position="-4.8 0 5.45">
+            <a-cylinder radius="0.35" height="0.8" color="#111827" material="roughness: 0.4" shadow="cast: true; receive: true"></a-cylinder>
+            <a-entity id="mineral-15" gltf-model="#torbernite-glb" position="0 0.9 0" scale="1 1 1" shadow="cast: true"></a-entity>
+            <a-light type="spot" color="#fff" intensity="0.5" distance="3" angle="45" position="0 2 0" target="#mineral-15"></a-light>
+        </a-entity>
+
+        <!-- 16. Sulfur (GLB) | CAD X=-25.5, Y=5.45 -->
+        <a-entity position="-25.5 0 5.45">
+            <a-cylinder radius="0.35" height="0.8" color="#111827" material="roughness: 0.4" shadow="cast: true; receive: true"></a-cylinder>
+            <a-entity id="mineral-16" gltf-model="#sulfur-glb" position="0 0.9 0" scale="1 1 1" shadow="cast: true"></a-entity>
+            <a-light type="spot" color="#fff" intensity="0.5" distance="3" angle="45" position="0 2 0" target="#mineral-16"></a-light>
+        </a-entity>
+
+        <!-- 17. Agate (GLB) | CAD X=-23.3, Y=-8.11 -->
+        <a-entity position="-23.3 0 -8.11">
+            <a-cylinder radius="0.35" height="0.8" color="#111827" material="roughness: 0.4" shadow="cast: true; receive: true"></a-cylinder>
+            <a-entity id="mineral-17" gltf-model="#agate-glb" position="0 0.9 0" scale="1 1 1" shadow="cast: true"></a-entity>
+            <a-light type="spot" color="#fff" intensity="0.5" distance="3" angle="45" position="0 2 0" target="#mineral-17"></a-light>
+        </a-entity>
+
+        <!-- 18. Prirodoslovni (GLB) | CAD X=5.6, Y=2.6 -->
+        <a-entity position="5.6 0 2.6">
+            <a-cylinder radius="0.35" height="0.8" color="#111827" material="roughness: 0.4" shadow="cast: true; receive: true"></a-cylinder>
+            <a-entity id="mineral-18" gltf-model="#prirodoslovni-glb" position="0 0.9 0" scale="1 1 1" shadow="cast: true"></a-entity>
+            <a-light type="spot" color="#fff" intensity="0.5" distance="3" angle="45" position="0 2 0" target="#mineral-18"></a-light>
+        </a-entity>
+
+    </a-scene>
+
+    <!-- ================= LOGICA JAVASCRIPT ================= -->
+    <script>
+        // Función para inicializar la experiencia tras el click de bienvenida
+        function startExperience() {
+            // Ocultar pantalla de bienvenida
+            const welcomeScreen = document.getElementById('welcome-screen');
+            welcomeScreen.style.opacity = 0;
+            setTimeout(() => {
+                welcomeScreen.style.display = 'none';
+            }, 1000);
+
+            // Reproducir música "Love" con reintento por si el navegador bloquea el audio
+            const music = document.getElementById('love-music');
+            music.play().catch(error => {
+                console.log("El navegador impidió la reproducción automática inmediata: ", error);
+                // Escuchador alternativo para primer click de interacción general si falló
+                document.addEventListener('click', () => {
+                    music.play();
+                }, { once: true });
+            });
+        }
+
+        // Registrar componente personalizado de A-Frame para manejar la acción del corazón
+        AFRAME.registerComponent('heart-click-behavior', {
+            init: function () {
+                const el = this.el;
+                el.addEventListener('click', () => {
+                    console.log("¡Botón Corazón Rojo presionado!");
+                    
+                    // 1. Mostrar corazón rosado físico en el cielo 3D de A-Frame
+                    const pinkHeartSky = document.getElementById('pink-heart-sky');
+                    if (pinkHeartSky) {
+                        pinkHeartSky.setAttribute('visible', 'true');
+                    }
+
+                    // 2. Hacer que el jugador levante la cabeza suavemente mirando hacia el cielo
+                    const rotator = document.getElementById('camera-rotator');
+                    if (rotator) {
+                        // Animación suave de rotación en el eje X para obligar a mirar al cielo (65 grados hacia arriba)
+                        rotator.setAttribute('animation', {
+                            property: 'rotation',
+                            to: '65 0 0',
+                            dur: 2500,
+                            easing: 'easeOutQuad'
+                        });
+                    }
+
+                    // 3. Desplegar el iframe con "Corazon.html" de manera suave y elegante como superposición espacial
+                    setTimeout(() => {
+                        const frameContainer = document.getElementById('corazon-frame-container');
+                        if (frameContainer) {
+                            frameContainer.style.display = 'block';
+                            // Fuerza el reflow
+                            frameContainer.offsetHeight;
+                            frameContainer.style.opacity = '1';
+                        }
+                    }, 2000); // Se despliega justo cuando la cámara termina de alzarse al cielo
+                });
+            }
+        });
+
+        // Función para cerrar el overlay del Corazón y restaurar la rotación de cámara
+        function closeCorazonOverlay() {
+            const frameContainer = document.getElementById('corazon-frame-container');
+            if (frameContainer) {
+                frameContainer.style.opacity = '0';
+                setTimeout(() => {
+                    frameContainer.style.display = 'none';
+                }, 1500);
+            }
+
+            // Devolver suavemente la rotación del cuello del jugador al plano horizontal
+            const rotator = document.getElementById('camera-rotator');
+            if (rotator) {
+                rotator.setAttribute('animation', {
+                    property: 'rotation',
+                    to: '0 0 0',
+                    dur: 2000,
+                    easing: 'easeOutQuad'
+                });
+            }
+        }
+    </script>
+</body>
+</html>
